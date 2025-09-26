@@ -18,7 +18,8 @@ project:
   # Don't forget to also update `PROJECT_SOURCES` in test/Makefile.
   source_files:
     - project.v
-    - pwm_peripheral.v  
+    - pwm_peripheral.v 
+    - spi_peripheral.v
 
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
