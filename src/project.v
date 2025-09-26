@@ -39,15 +39,18 @@ module tt_um_uwasic_onboarding_kevin_patel (
   );
 
   //Instantiate the SPI module
-  spi_peripheral spi_peripheral_inst(
-    .clk(clk),
+  spi_peripheral spi_peripheral_inst (
+    .clock(clk),
     .rst_n(rst_n),
+    .sclk_in(ui_in[0]),
+    .copi_in(ui_in[1]),
+    .ncs_in(ui_in[2]),
     .en_reg_out_7_0(en_reg_out_7_0),
     .en_reg_out_15_8(en_reg_out_15_8),
     .en_reg_pwm_7_0(en_reg_pwm_7_0),
     .en_reg_pwm_15_8(en_reg_pwm_15_8),
     .pwm_duty_cycle(pwm_duty_cycle)
-  );
+);
 
   // List all unused inputs to prevent warnings
   wire _unused = &{ena, ui_in[7:3], uio_in, 1'b0};
