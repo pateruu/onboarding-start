@@ -3,7 +3,7 @@
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import RisingEdge
+from cocotb.triggers import RisingEdge, FallingEdge
 from cocotb.triggers import ClockCycles
 from cocotb.types import Logic
 from cocotb.types import LogicArray
@@ -152,10 +152,100 @@ async def test_spi(dut):
 @cocotb.test()
 async def test_pwm_freq(dut):
     # Write your test here
-    dut._log.info("PWM Frequency test completed successfully")
+    dut._log.info("Start PWM Frequency Test")
+
+    clock = Clock(dut.clk, 100, units="ns") # start clockm 10Mhz
+    cocotb.start_soon(clock.start())
+
+    # Reset
+    dut.rst_n.value = 0
+    await ClockCycles(dut.clk, 5)
+    dut.rst_n.value = 1
+    await ClockCycles(dut.clk, 5)
+
+    await send_spi_transaction(dut, 1, 0x04, 0x08) # pick any duty cycle value
+
+    await RisingEdge(dut.uo_out[0]) # wait for first rising edge
+    t1 = cocotb.utils.get_sim_time(units="ns") #get time at that point
+    await RisingEdge(dut.uo_out[0]) # wait for second rising edge
+    t2 = cocotb.utils.get_sim_time(units="ns") #get time at that point
+
+    period = t2-t1 # period is from two rising edges
+    frequency = (1e9 / period)
+    
+    if (2970 <= frequency <= 3000):
+        dut._log.info("PASS: Freq. within ±1% of 3kHz")
+    else:
+        dut._log.error("FAIL: Freq. out of range")
+        raise cocotb.result.TestFailure("Expected ~3kHz frequency")
 
 
 @cocotb.test()
 async def test_pwm_duty(dut):
     # Write your test here
-    dut._log.info("PWM Duty Cycle test completed successfully")
+    dut._log.info("Start PWM Duty Cycle Test")
+
+    clock = Clock(dut.clk, 100, units="ns") # start clockm 10Mhz
+    cocotb.start_soon(clock.start())
+
+    # Reset
+    dut.rst_n.value = 0
+    await ClockCycles(dut.clk, 5)
+    dut.rst_n.value = 1
+    await ClockCycles(dut.clk, 5)
+
+
+    # Case #1 (0% duty cycle)
+    await send_spi_transaction(dut, 1, 0x04, 0x00)
+
+    all_low = True
+    for _ in range(1000):
+        await ClockCycles(dut.clk, 1)
+        if (dut.uo_out[0].value.integer != 0):
+            all_low = False
+            break
+    
+    if (all_low):
+        dut._log.info("CASE1 (0%): PASS, signal stayed low")
+    else:
+        dut._log.error("CASE1 (0%): FAIL, signal went high")
+        raise cocotb.result.TestFailure("Expected always low at 0% duty")
+    
+    # Case #2 (50% duty cycle)
+    await send_spi_transaction(dut, 1, 0x04, 0x80)
+
+    await RisingEdge(dut.uo_out[0])
+    t_rise1 = cocotb.utils.get_sim_time(units="ns")
+
+    await FallingEdge(dut.uo_out[0])
+    t_fall = cocotb.utils.get_sim_time(units="ns")
+
+    await RisingEdge(dut.uo_out[0])
+    t_rise2 = cocotb.utils.get_sim_time(units="ns")
+
+    period = t_rise2 - t_rise1
+    high_time = t_fall - t_rise1
+    duty = high_time / period
+    duty *= 100
+
+    if 45 <= duty <= 55:
+        dut._log.info(f"CASE2 (50%): PASS, {duty:.2f}%")
+    else:
+        dut._log.error(f"CASE2 (50%): FAIL, {duty:.2f}%")
+        raise cocotb.result.TestFailure("Expected ~50% duty")
+
+    # Case #3 (100% duty cycle)
+    await send_spi_transaction(dut, 1, 0x04, 0xFF)
+
+    all_high = True
+    for _ in range(1000):
+        await ClockCycles(dut.clk, 1)
+        if (dut.uo_out[0].value.integer != 1):
+            all_high = False
+            break
+
+    if (all_high):
+        dut._log.info("CASE3 (100%): PASS, signal stayed high")
+    else:
+        dut._log.error("CASE3 (100%): FAIL, signal went low")
+        raise cocotb.result.TestFailure("Expected always high at 100% duty")
