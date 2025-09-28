@@ -255,3 +255,4 @@ async def test_pwm_duty(dut):
     else:
         dut._log.error("CASE3 (100%): FAIL, signal went low")
         raise cocotb.result.TestFailure("Expected always high at 100% duty")
+    
