@@ -183,6 +183,7 @@ async def test_pwm_freq(dut):
     await ClockCycles(dut.clk, 10000) # give time for PWM to start
 
     t1 = await wait_for_edge(dut, 1, timeout=100000000)
+    await wait_for_edge(dut, 0, timeout=100000000)
     t2 = await wait_for_edge(dut, 1, timeout=100000000)
 
     period = t2-t1 # period is from two rising edges
