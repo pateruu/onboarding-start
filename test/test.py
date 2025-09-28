@@ -165,10 +165,19 @@ async def test_pwm_freq(dut):
 
     await send_spi_transaction(dut, 1, 0x04, 0x08) # pick any duty cycle value
 
-    await RisingEdge(dut.uo_out[0]) # wait for first rising edge
-    t1 = cocotb.utils.get_sim_time(units="ns") #get time at that point
-    await RisingEdge(dut.uo_out[0]) # wait for second rising edge
-    t2 = cocotb.utils.get_sim_time(units="ns") #get time at that point
+    # Wait for rising edge
+    while((dut.uo_out.value.integer & 1) == 1):
+        await RisingEdge(dut.clk) 
+    while((dut.uo_out.value.integer & 1) == 0):
+        await RisingEdge(dut.clk) 
+    t1 = cocotb.utils.get_sim_time(units="ns") # get time at that point
+
+    # wait for next rising edge
+    while((dut.uo_out.value.integer & 1) == 1):
+        await RisingEdge(dut.clk) 
+    while((dut.uo_out.value.integer & 1) == 0):
+        await RisingEdge(dut.clk) 
+    t2 = cocotb.utils.get_sim_time(units="ns") # get time at that point
 
     period = t2-t1 # period is from two rising edges
     frequency = (1e9 / period)
@@ -201,7 +210,7 @@ async def test_pwm_duty(dut):
     all_low = True
     for _ in range(1000):
         await ClockCycles(dut.clk, 1)
-        if (dut.uo_out[0].value.integer != 0):
+        if((dut.uo_out.value.integer & 1) != 0):
             all_low = False
             break
     
@@ -214,13 +223,21 @@ async def test_pwm_duty(dut):
     # Case #2 (50% duty cycle)
     await send_spi_transaction(dut, 1, 0x04, 0x80)
 
-    await RisingEdge(dut.uo_out[0])
+    # wait for rising edge
+    while((dut.uo_out.value.integer & 1) == 1):
+        await RisingEdge(dut.clk)
+    while((dut.uo_out.value.integer & 1) == 0):
+        await RisingEdge(dut.clk)
     t_rise1 = cocotb.utils.get_sim_time(units="ns")
 
-    await FallingEdge(dut.uo_out[0])
+    # falling edge
+    while((dut.uo_out.value.integer & 1) == 1):
+        await RisingEdge(dut.clk)
     t_fall = cocotb.utils.get_sim_time(units="ns")
 
-    await RisingEdge(dut.uo_out[0])
+    # next rising edge
+    while((dut.uo_out.value.integer & 1) == 0):
+        await RisingEdge(dut.clk)
     t_rise2 = cocotb.utils.get_sim_time(units="ns")
 
     period = t_rise2 - t_rise1
@@ -240,7 +257,7 @@ async def test_pwm_duty(dut):
     all_high = True
     for _ in range(1000):
         await ClockCycles(dut.clk, 1)
-        if (dut.uo_out[0].value.integer != 1):
+        if((dut.uo_out.value.integer & 1) != 1):
             all_high = False
             break
 
