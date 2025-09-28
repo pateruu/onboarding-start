@@ -180,6 +180,8 @@ async def test_pwm_freq(dut):
     await send_spi_transaction(dut, 1, 0x02, 0x01)  # enable PWM module
     await send_spi_transaction(dut, 1, 0x04, 0x80)  # 50% duty
 
+    await ClockCycles(dut.clk, 10000) # give time for PWM to start
+
     t1 = await wait_for_edge(dut, 1, timeout=100000000)
     t2 = await wait_for_edge(dut, 1, timeout=100000000)
 
