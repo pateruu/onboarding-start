@@ -166,15 +166,11 @@ async def test_pwm_freq(dut):
     await send_spi_transaction(dut, 1, 0x04, 0x08) # pick any duty cycle value
 
     # Wait for rising edge
-    while((dut.uo_out.value.integer & 1) == 1):
-        await RisingEdge(dut.clk) 
     while((dut.uo_out.value.integer & 1) == 0):
         await RisingEdge(dut.clk) 
     t1 = cocotb.utils.get_sim_time(units="ns") # get time at that point
 
     # wait for next rising edge
-    while((dut.uo_out.value.integer & 1) == 1):
-        await RisingEdge(dut.clk) 
     while((dut.uo_out.value.integer & 1) == 0):
         await RisingEdge(dut.clk) 
     t2 = cocotb.utils.get_sim_time(units="ns") # get time at that point
@@ -224,8 +220,6 @@ async def test_pwm_duty(dut):
     await send_spi_transaction(dut, 1, 0x04, 0x80)
 
     # wait for rising edge
-    while((dut.uo_out.value.integer & 1) == 1):
-        await RisingEdge(dut.clk)
     while((dut.uo_out.value.integer & 1) == 0):
         await RisingEdge(dut.clk)
     t_rise1 = cocotb.utils.get_sim_time(units="ns")
