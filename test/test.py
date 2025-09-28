@@ -154,12 +154,11 @@ async def test_spi(dut):
 async def wait_for_edge(dut, value: int, timeout=1000000):
     elapsed = 0
 
-    while(dut.uo_out.value.integer & 1 ) != value:
+    while((dut.uo_out.value.integer & 1) != value):
         await Timer(100, units="ns")
-        elapsed = elapsed + 100 # check every 100 ns
-
+        elapsed = elapsed + 100
         if(elapsed >= timeout):
-            raise TestFailure(f"Timeout waiting for {value}")
+            raise cocotb.result.TestFailure(f"Timeout waiting for {value}")
     return cocotb.utils.get_sim_time(units="ns")
 
 @cocotb.test()
@@ -183,7 +182,7 @@ async def test_pwm_freq(dut):
     await ClockCycles(dut.clk, 10000) # give time for PWM to start
 
     t1 = await wait_for_edge(dut, 1, timeout=100000000)
-    await wait_for_edge(dut, 0, timeout=100000000)
+    await wait_for_edge(dut, 0, timeout=1000000)
     t2 = await wait_for_edge(dut, 1, timeout=100000000)
 
     period = t2-t1 # period is from two rising edges
