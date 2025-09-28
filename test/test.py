@@ -184,6 +184,8 @@ async def test_pwm_freq(dut):
     t2 = await wait_for_edge(dut, 1, timeout=100000000)
 
     period = t2-t1 # period is from two rising edges
+    if period == 0:
+        raise TestFailure("No period measured")
     frequency = (1e9 / period)
     
     if (2970 <= frequency <= 3000):
