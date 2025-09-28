@@ -3,10 +3,12 @@
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import RisingEdge, FallingEdge
+from cocotb.triggers import RisingEdge, FallingEdge, Timer
 from cocotb.triggers import ClockCycles
 from cocotb.types import Logic
 from cocotb.types import LogicArray
+from cocotb.result import TestFailure
+
 
 async def await_half_sclk(dut):
     """Wait for the SCLK signal to go high or low."""
@@ -149,6 +151,17 @@ async def test_spi(dut):
 
     dut._log.info("SPI test completed successfully")
 
+async def wait_for_edge(dut, value: int, timeout=1000000):
+    elapsed = 0
+
+    while(dut.uo_out.value.integer & 1 ) != value:
+        await Timer(100, units="ns")
+        elapsed = elapsed + 100 # check every 100 ns
+
+        if(elapsed >= timeout):
+            raise TestFailure(f"Timeout waiting for {value}")
+    return cocotb.utils.get_sim_time(units="ns")
+
 @cocotb.test()
 async def test_pwm_freq(dut):
     # Write your test here
@@ -165,15 +178,8 @@ async def test_pwm_freq(dut):
 
     await send_spi_transaction(dut, 1, 0x04, 0x08) # pick any duty cycle value
 
-    # Wait for rising edge
-    while((dut.uo_out.value.integer & 1) == 0):
-        await RisingEdge(dut.clk) 
-    t1 = cocotb.utils.get_sim_time(units="ns") # get time at that point
-
-    # wait for next rising edge
-    while((dut.uo_out.value.integer & 1) == 0):
-        await RisingEdge(dut.clk) 
-    t2 = cocotb.utils.get_sim_time(units="ns") # get time at that point
+    t1 = await wait_for_edge(dut, 1, timeout=100000000)
+    t2 = await wait_for_edge(dut, 1, timeout=100000000)
 
     period = t2-t1 # period is from two rising edges
     frequency = (1e9 / period)
@@ -219,20 +225,9 @@ async def test_pwm_duty(dut):
     # Case #2 (50% duty cycle)
     await send_spi_transaction(dut, 1, 0x04, 0x80)
 
-    # wait for rising edge
-    while((dut.uo_out.value.integer & 1) == 0):
-        await RisingEdge(dut.clk)
-    t_rise1 = cocotb.utils.get_sim_time(units="ns")
-
-    # falling edge
-    while((dut.uo_out.value.integer & 1) == 1):
-        await RisingEdge(dut.clk)
-    t_fall = cocotb.utils.get_sim_time(units="ns")
-
-    # next rising edge
-    while((dut.uo_out.value.integer & 1) == 0):
-        await RisingEdge(dut.clk)
-    t_rise2 = cocotb.utils.get_sim_time(units="ns")
+    t_rise1 = await wait_for_edge(dut, 1)
+    t_fall = await wait_for_edge(dut, 0)
+    t_rise2 = await wait_for_edge(dut, 1)
 
     period = t_rise2 - t_rise1
     high_time = t_fall - t_rise1
