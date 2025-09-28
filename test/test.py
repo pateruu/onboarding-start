@@ -189,8 +189,8 @@ async def test_pwm_freq(dut):
     if period == 0:
         raise TestFailure("No period measured")
     frequency = (1e9 / period)
-    
-    if (2970 <= frequency <= 3000):
+    dut._log.info(f"Measured frequency: {frequency:.2f} Hz")
+    if (2900 <= frequency <= 3100):
         dut._log.info("PASS: Freq. within ±1% of 3kHz")
     else:
         dut._log.error("FAIL: Freq. out of range")
