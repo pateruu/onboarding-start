@@ -176,7 +176,9 @@ async def test_pwm_freq(dut):
     dut.rst_n.value = 1
     await ClockCycles(dut.clk, 5)
 
-    await send_spi_transaction(dut, 1, 0x04, 0x08) # pick any duty cycle value
+    await send_spi_transaction(dut, 1, 0x00, 0x01)  # global enable
+    await send_spi_transaction(dut, 1, 0x02, 0x01)  # enable PWM module
+    await send_spi_transaction(dut, 1, 0x04, 0x08)  # 50% duty
 
     t1 = await wait_for_edge(dut, 1, timeout=100000000)
     t2 = await wait_for_edge(dut, 1, timeout=100000000)
@@ -207,7 +209,9 @@ async def test_pwm_duty(dut):
 
 
     # Case #1 (0% duty cycle)
-    await send_spi_transaction(dut, 1, 0x04, 0x00)
+    await send_spi_transaction(dut, 1, 0x00, 0x01)  # global enable
+    await send_spi_transaction(dut, 1, 0x02, 0x01)  # enable PWM module
+    await send_spi_transaction(dut, 1, 0x04, 0x00)  # 50% duty
 
     all_low = True
     for _ in range(1000):
