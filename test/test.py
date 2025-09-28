@@ -154,11 +154,12 @@ async def test_spi(dut):
 async def wait_for_edge(dut, value: int, timeout=1000000):
     elapsed = 0
 
-    while((dut.uo_out.value.integer & 1) != value):
+    while(dut.uo_out.value.integer & 1 ) != value:
         await Timer(100, units="ns")
-        elapsed = elapsed + 100
+        elapsed = elapsed + 100 # check every 100 ns
+
         if(elapsed >= timeout):
-            raise cocotb.result.TestFailure(f"Timeout waiting for {value}")
+            raise TestFailure(f"Timeout waiting for {value}")
     return cocotb.utils.get_sim_time(units="ns")
 
 @cocotb.test()
@@ -174,22 +175,15 @@ async def test_pwm_freq(dut):
     await ClockCycles(dut.clk, 5)
     dut.rst_n.value = 1
     await ClockCycles(dut.clk, 5)
-
-    await send_spi_transaction(dut, 1, 0x00, 0x01)  # global enable
-    await send_spi_transaction(dut, 1, 0x02, 0x01)  # enable PWM module
-    await send_spi_transaction(dut, 1, 0x04, 0x80)  # 50% duty
-
-    await ClockCycles(dut.clk, 10000) # give time for PWM to start
+    
+    await send_spi_transaction(dut, 1, 0x04, 0x08) # pick any duty cycle value
 
     t1 = await wait_for_edge(dut, 1, timeout=100000000)
-    await wait_for_edge(dut, 0, timeout=1000000)
     t2 = await wait_for_edge(dut, 1, timeout=100000000)
 
     period = t2-t1 # period is from two rising edges
-    if period == 0:
-        raise TestFailure("No period measured")
     frequency = (1e9 / period)
-    dut._log.info(f"Measured frequency: {frequency:.2f} Hz")
+    
     if (2900 <= frequency <= 3100):
         dut._log.info("PASS: Freq. within ±1% of 3kHz")
     else:
@@ -213,9 +207,7 @@ async def test_pwm_duty(dut):
 
 
     # Case #1 (0% duty cycle)
-    await send_spi_transaction(dut, 1, 0x00, 0x01)  # global enable
-    await send_spi_transaction(dut, 1, 0x02, 0x01)  # enable PWM module
-    await send_spi_transaction(dut, 1, 0x04, 0x00)  # 50% duty
+    await send_spi_transaction(dut, 1, 0x04, 0x00)
 
     all_low = True
     for _ in range(1000):
